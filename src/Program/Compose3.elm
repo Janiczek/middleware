@@ -71,7 +71,7 @@ update middlewareOut middlewareIn program msgOut modelOut =
         ( modelOutAfterOut, cmdAfterOut, maybeprogramMsgOut ) =
             middlewareOut.update msgOut modelOut program.programMsgs
 
-        ( modelOutAfterprogramMsgOut, cmdAfterprogramMsgOut ) =
+        ( modelOutAfterProgramMsgOut, cmdAfterProgramMsgOut ) =
             maybeprogramMsgOut
                 |> Maybe.map (\msg -> updateProgramMsg msg modelOutAfterOut cmdAfterOut)
                 |> Maybe.withDefault ( modelOutAfterOut, cmdAfterOut )
@@ -85,23 +85,23 @@ update middlewareOut middlewareIn program msgOut modelOut =
                 |> Maybe.map
                     (\msgIn ->
                         middlewareIn.update msgIn
-                            modelOutAfterprogramMsgOut.innerModel
+                            modelOutAfterProgramMsgOut.innerModel
                             program.programMsgs
                     )
                 |> Maybe.map
                     (\( modelIn, cmdIn, maybeprogramMsgIn ) ->
-                        ( { modelOutAfterprogramMsgOut | innerModel = modelIn }
+                        ( { modelOutAfterProgramMsgOut | innerModel = modelIn }
                         , Cmd.batch
-                            [ cmdAfterprogramMsgOut
+                            [ cmdAfterProgramMsgOut
                             , cmdIn
                                 |> Cmd.map middlewareOut.wrapMsg
                             ]
                         , maybeprogramMsgIn
                         )
                     )
-                |> Maybe.withDefault ( modelOutAfterprogramMsgOut, cmdAfterprogramMsgOut, Nothing )
+                |> Maybe.withDefault ( modelOutAfterProgramMsgOut, cmdAfterProgramMsgOut, Nothing )
 
-        ( modelOutAfterprogramMsgIn, cmdAfterprogramMsgIn ) =
+        ( modelOutAfterProgramMsgIn, cmdAfterProgramMsgIn ) =
             maybeprogramMsgIn
                 |> Maybe.map (\msg -> updateProgramMsg msg modelOutAfterIn cmdAfterIn)
                 |> Maybe.withDefault ( modelOutAfterIn, cmdAfterIn )
@@ -112,8 +112,8 @@ update middlewareOut middlewareIn program msgOut modelOut =
 
         ( modelOutAfterProgram, cmdAfterProgram ) =
             maybeMsgprogram
-                |> Maybe.map (\msg -> updateProgramMsg msg modelOutAfterprogramMsgIn cmdAfterprogramMsgIn)
-                |> Maybe.withDefault ( modelOutAfterprogramMsgIn, cmdAfterprogramMsgIn )
+                |> Maybe.map (\msg -> updateProgramMsg msg modelOutAfterProgramMsgIn cmdAfterProgramMsgIn)
+                |> Maybe.withDefault ( modelOutAfterProgramMsgIn, cmdAfterProgramMsgIn )
     in
         ( modelOutAfterProgram
         , cmdAfterProgram
