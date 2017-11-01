@@ -2,12 +2,12 @@ module Middleware.SubsTest exposing (middleware)
 
 import Html exposing (Html)
 import Html.Attributes
-import Program exposing (Middleware, HasNextModel)
+import Program.Types exposing (Middleware, HasInnerModel)
 import Time
 
 
-type Msg nextMsg
-    = Other nextMsg
+type Msg innerMsg
+    = Other innerMsg
     | ToggleFlash
 
 
@@ -15,7 +15,7 @@ type alias Model =
     { isFlashing : Bool }
 
 
-middleware : Middleware model Model msg (Msg msg)
+middleware : Middleware innerModel Model innerMsg (Msg innerMsg) programMsgs programMsg
 middleware =
     { init = init
     , update = update
@@ -26,31 +26,40 @@ middleware =
     }
 
 
-init : ( oldModel, Cmd msg ) -> ( HasNextModel Model oldModel, Cmd (Msg msg) )
-init ( oldModel, oldCmd ) =
-    ( { nextModel = oldModel, isFlashing = False }
-    , Cmd.map Other oldCmd
+init :
+    ( innerModel, Cmd innerMsg )
+    -> ( HasInnerModel Model innerModel, Cmd (Msg innerMsg) )
+init ( innerModel, innerCmd ) =
+    ( { innerModel = innerModel, isFlashing = False }
+    , Cmd.map Other innerCmd
     )
 
 
-update : Msg msg -> HasNextModel Model model -> ( HasNextModel Model model, Cmd (Msg msg) )
-update msg model =
+update :
+    Msg innerMsg
+    -> HasInnerModel Model innerModel
+    -> programMsgs
+    -> ( HasInnerModel Model innerModel, Cmd (Msg innerMsg), Maybe programMsg )
+update msg model programMsgs =
     case msg of
         ToggleFlash ->
             ( { model | isFlashing = not model.isFlashing }
             , Cmd.none
+            , Nothing
             )
 
         Other innerMsg ->
-            ( model, Cmd.none )
+            ( model, Cmd.none, Nothing )
 
 
-subscriptions : HasNextModel Model model -> Sub (Msg msg)
+subscriptions :
+    HasInnerModel Model innerModel
+    -> Sub (Msg innerMsg)
 subscriptions model =
     Time.every (500 * Time.millisecond) (always ToggleFlash)
 
 
-unwrapMsg : Msg msg -> Maybe msg
+unwrapMsg : Msg innerMsg -> Maybe innerMsg
 unwrapMsg msg =
     case msg of
         Other innerMsg ->
@@ -60,7 +69,10 @@ unwrapMsg msg =
             Nothing
 
 
-view : HasNextModel Model model -> Html (Msg msg) -> Html (Msg msg)
+view :
+    HasInnerModel Model innerModel
+    -> Html (Msg innerMsg)
+    -> Html (Msg innerMsg)
 view model innerView =
     Html.div
         [ Html.Attributes.classList

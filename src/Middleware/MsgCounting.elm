@@ -2,18 +2,19 @@ module Middleware.MsgCounting exposing (middleware)
 
 import Html exposing (Html)
 import Html.Attributes
-import Program exposing (Middleware, HasNextModel)
+import Program
+import Program.Types exposing (Middleware)
 
 
-type Msg nextMsg
-    = Other nextMsg
+type Msg innerMsg
+    = Other innerMsg
 
 
 type alias Model =
     { msgCounter : Int }
 
 
-middleware : Middleware model Model msg (Msg msg)
+middleware : Middleware innerModel Model innerMsg (Msg innerMsg) programMsgs programMsg
 middleware =
     { init = init
     , update = update
@@ -24,33 +25,33 @@ middleware =
     }
 
 
-init : ( oldModel, Cmd msg ) -> ( HasNextModel Model oldModel, Cmd (Msg msg) )
-init ( oldModel, oldCmd ) =
-    ( { nextModel = oldModel, msgCounter = 0 }
-    , Cmd.map Other oldCmd
+init : ( innerModel, Cmd innerMsg ) -> ( { Model | innerModel : innerModel }, Cmd (Msg innerMsg) )
+init ( innerModel, innerCmd ) =
+    ( { innerModel = innerModel, msgCounter = 0 }
+    , Cmd.map Other innerCmd
     )
 
 
-update : Msg msg -> HasNextModel Model model -> ( HasNextModel Model model, Cmd (Msg msg) )
-update msg model =
-    let
-        newMsgCounter =
-            (model.msgCounter + 1)
-                |> Debug.log "MW2 (msg counting)"
-    in
-        ( { model | msgCounter = newMsgCounter }
+update :
+    Msg innerMsg
+    -> { Model | innerModel : innerModel }
+    -> programMsgs
+    -> ( { Model | innerModel : innerModel }, Cmd (Msg innerMsg), Maybe programMsg )
+update msg model programMsgs =
+        ( { model | msgCounter = model.msgCounter + 1 }
         , Cmd.none
+        , Nothing
         )
 
 
-unwrapMsg : Msg msg -> Maybe msg
+unwrapMsg : Msg innerMsg -> Maybe innerMsg
 unwrapMsg msg =
     case msg of
         Other innerMsg ->
             Just innerMsg
 
 
-view : HasNextModel Model model -> Html (Msg msg) -> Html (Msg msg)
+view : { Model | innerModel : innerModel } -> Html (Msg innerMsg) -> Html (Msg innerMsg)
 view model innerView =
     Html.div [ Html.Attributes.class "msg-counting" ]
         [ Html.text <| "msg counting middleware here! current msg count: " ++ toString model.msgCounter

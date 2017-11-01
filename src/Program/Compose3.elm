@@ -1,97 +1,139 @@
 module Program.Compose3 exposing (init, subscriptions, update, view)
 
-import Html
+import Html exposing (Html)
+import Program.Types exposing (Middleware, ProgramRecord)
 
 
-init middleware1 middleware2 program =
+init :
+    Middleware { modelIn | innerModel : modelProgram } modelOut msgIn msgOut programMsgs msgProgram
+    -> Middleware modelProgram modelIn msgProgram msgIn programMsgs msgProgram
+    -> ProgramRecord modelProgram msgProgram programMsgs
+    -> ( { modelOut | innerModel : { modelIn | innerModel : modelProgram } }, Cmd msgOut )
+init middlewareOut middlewareIn program =
     program.init
-        |> middleware2.init
-        |> middleware1.init
+        |> middlewareIn.init
+        |> middlewareOut.init
 
 
-subscriptions middleware1 middleware2 program model =
+subscriptions :
+    Middleware { modelIn | innerModel : modelProgram } modelOut msgIn msgOut programMsgs msgProgram
+    -> Middleware modelProgram modelIn msgProgram msgIn programMsgs msgProgram
+    -> ProgramRecord modelProgram msgProgram programMsgs
+    -> { modelOut | innerModel : { modelIn | innerModel : modelProgram } }
+    -> Sub msgOut
+subscriptions middlewareOut middlewareIn program model =
     let
         programSubs =
-            program.subscriptions model.nextModel.nextModel
+            program.subscriptions model.innerModel.innerModel
 
-        middleware2Subs =
-            middleware2.subscriptions model.nextModel
+        middlewareInSubs =
+            middlewareIn.subscriptions model.innerModel
 
-        middleware1Subs =
-            middleware1.subscriptions model
+        middlewareOutSubs =
+            middlewareOut.subscriptions model
     in
         Sub.batch
             [ programSubs
-                |> Sub.map middleware2.wrapMsg
-                |> Sub.map middleware1.wrapMsg
-            , middleware2Subs
-                |> Sub.map middleware1.wrapMsg
-            , middleware1Subs
+                |> Sub.map middlewareIn.wrapMsg
+                |> Sub.map middlewareOut.wrapMsg
+            , middlewareInSubs
+                |> Sub.map middlewareOut.wrapMsg
+            , middlewareOutSubs
             ]
 
 
-update middleware1 middleware2 program msg1 model1 =
+update :
+    Middleware { modelIn | innerModel : modelProgram } modelOut msgIn msgOut programMsgs msgProgram
+    -> Middleware modelProgram modelIn msgProgram msgIn programMsgs msgProgram
+    -> ProgramRecord modelProgram msgProgram programMsgs
+    -> msgOut
+    -> { modelOut | innerModel : { modelIn | innerModel : modelProgram } }
+    -> ( { modelOut | innerModel : { modelIn | innerModel : modelProgram } }, Cmd msgOut )
+update middlewareOut middlewareIn program msgOut modelOut =
     let
-        ( model1After1, cmdAfter1 ) =
-            middleware1.update msg1 model1
+        updateProgramMsg msgProgram modelOut cmdOut =
+            let
+                modelIn =
+                    modelOut.innerModel
 
-        ( model1After2, cmdAfter2 ) =
-            case middleware1.unwrapMsg msg1 of
-                Nothing ->
-                    ( model1After1, cmdAfter1 )
+                ( modelProgramAfterMsg, cmdProgramAfterMsg ) =
+                    program.update msgProgram modelOut.innerModel.innerModel
+            in
+                ( { modelOut | innerModel = { modelIn | innerModel = modelProgramAfterMsg } }
+                , Cmd.batch
+                    [ cmdOut
+                    , cmdProgramAfterMsg
+                        |> Cmd.map middlewareIn.wrapMsg
+                        |> Cmd.map middlewareOut.wrapMsg
+                    ]
+                )
 
-                Just msg2 ->
-                    let
-                        ( model2, cmd2 ) =
-                            middleware2.update msg2 model1After1.nextModel
-                    in
-                        ( { model1After1 | nextModel = model2 }
+        ( modelOutAfterOut, cmdAfterOut, maybeprogramMsgOut ) =
+            middlewareOut.update msgOut modelOut program.programMsgs
+
+        ( modelOutAfterprogramMsgOut, cmdAfterprogramMsgOut ) =
+            maybeprogramMsgOut
+                |> Maybe.map (\msg -> updateProgramMsg msg modelOutAfterOut cmdAfterOut)
+                |> Maybe.withDefault ( modelOutAfterOut, cmdAfterOut )
+
+        maybeMsgIn =
+            msgOut
+                |> middlewareOut.unwrapMsg
+
+        ( modelOutAfterIn, cmdAfterIn, maybeprogramMsgIn ) =
+            maybeMsgIn
+                |> Maybe.map
+                    (\msgIn ->
+                        middlewareIn.update msgIn
+                            modelOutAfterprogramMsgOut.innerModel
+                            program.programMsgs
+                    )
+                |> Maybe.map
+                    (\( modelIn, cmdIn, maybeprogramMsgIn ) ->
+                        ( { modelOutAfterprogramMsgOut | innerModel = modelIn }
                         , Cmd.batch
-                            [ cmdAfter1
-                            , cmd2
-                                |> Cmd.map middleware1.wrapMsg
+                            [ cmdAfterprogramMsgOut
+                            , cmdIn
+                                |> Cmd.map middlewareOut.wrapMsg
                             ]
+                        , maybeprogramMsgIn
                         )
+                    )
+                |> Maybe.withDefault ( modelOutAfterprogramMsgOut, cmdAfterprogramMsgOut, Nothing )
 
-        ( model1AfterProgram, cmdAfterProgram ) =
-            case
-                msg1
-                    |> middleware1.unwrapMsg
-                    |> Maybe.andThen middleware2.unwrapMsg
-            of
-                Nothing ->
-                    ( model1After2, cmdAfter2 )
+        ( modelOutAfterprogramMsgIn, cmdAfterprogramMsgIn ) =
+            maybeprogramMsgIn
+                |> Maybe.map (\msg -> updateProgramMsg msg modelOutAfterIn cmdAfterIn)
+                |> Maybe.withDefault ( modelOutAfterIn, cmdAfterIn )
 
-                Just msgProgram ->
-                    let
-                        model2After2 =
-                            model1After2.nextModel
+        maybeMsgprogram =
+            maybeMsgIn
+                |> Maybe.andThen middlewareIn.unwrapMsg
 
-                        ( modelProgram, cmdProgram ) =
-                            program.update msgProgram model2After2.nextModel
-                    in
-                        ( { model1After2 | nextModel = { model2After2 | nextModel = modelProgram } }
-                        , Cmd.batch
-                            [ cmdAfter2
-                            , cmdProgram
-                                |> Cmd.map middleware2.wrapMsg
-                                |> Cmd.map middleware1.wrapMsg
-                            ]
-                        )
+        ( modelOutAfterProgram, cmdAfterProgram ) =
+            maybeMsgprogram
+                |> Maybe.map (\msg -> updateProgramMsg msg modelOutAfterprogramMsgIn cmdAfterprogramMsgIn)
+                |> Maybe.withDefault ( modelOutAfterprogramMsgIn, cmdAfterprogramMsgIn )
     in
-        ( model1AfterProgram
+        ( modelOutAfterProgram
         , cmdAfterProgram
         )
 
 
-view middleware1 middleware2 program model =
+view :
+    Middleware { modelIn | innerModel : modelProgram } modelOut msgIn msgOut programMsgs msgProgram
+    -> Middleware modelProgram modelIn msgProgram msgIn programMsgs msgProgram
+    -> ProgramRecord modelProgram msgProgram programMsgs
+    -> { modelOut | innerModel : { modelIn | innerModel : modelProgram } }
+    -> Html msgOut
+view middlewareOut middlewareIn program model =
     let
         programView =
-            program.view model.nextModel.nextModel
-                |> Html.map middleware2.wrapMsg
+            program.view model.innerModel.innerModel
+                |> Html.map middlewareIn.wrapMsg
 
-        middleware2View =
-            middleware2.view model.nextModel programView
-                |> Html.map middleware1.wrapMsg
+        middlewareInView =
+            middlewareIn.view model.innerModel programView
+                |> Html.map middlewareOut.wrapMsg
     in
-        middleware1.view model middleware2View
+        middlewareOut.view model middlewareInView

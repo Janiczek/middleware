@@ -2,7 +2,7 @@ module ExampleProgram exposing (program)
 
 import Html exposing (Html)
 import Html.Attributes
-import Program exposing (ProgramRecord)
+import Program.Types exposing (ProgramRecord)
 import Time
 
 
@@ -13,14 +13,17 @@ type alias Model =
 type Msg
     = Increment
     | Double
+      -- called from ResetByMsg middleware:
+    | Reset
 
 
-program : ProgramRecord Model Msg
+program : ProgramRecord Model Msg { reset : Msg }
 program =
     { init = init
     , update = update
     , subscriptions = subscriptions
     , view = view
+    , programMsgs = { reset = Reset }
     }
 
 
@@ -37,6 +40,9 @@ update msg model =
 
         Double ->
             ( (model * 2), Cmd.none )
+
+        Reset ->
+            ( 0, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg

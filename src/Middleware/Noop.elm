@@ -2,18 +2,19 @@ module Middleware.Noop exposing (middleware)
 
 import Html exposing (Html)
 import Html.Attributes
-import Program exposing (Middleware, HasNextModel)
+import Program
+import Program.Types exposing (Middleware)
 
 
-type Msg nextMsg
-    = Other nextMsg
+type Msg innerMsg
+    = Other innerMsg
 
 
 type alias Model =
     {}
 
 
-middleware : Middleware model Model msg (Msg msg)
+middleware : Middleware innerModel Model innerMsg (Msg innerMsg) programMsgs programMsg
 middleware =
     { init = Program.initNoop Other
     , update = Program.updateNoop
@@ -24,14 +25,14 @@ middleware =
     }
 
 
-unwrapMsg : Msg msg -> Maybe msg
+unwrapMsg : Msg innerMsg -> Maybe innerMsg
 unwrapMsg msg =
     case msg of
         Other innerMsg ->
             Just innerMsg
 
 
-view : HasNextModel Model model -> Html (Msg msg) -> Html (Msg msg)
+view : { innerModel : innerModel } -> Html (Msg innerMsg) -> Html (Msg innerMsg)
 view model innerView =
     Html.div [ Html.Attributes.class "noop" ]
         [ Html.text "noop middleware here!"
