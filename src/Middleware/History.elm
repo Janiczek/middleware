@@ -3,7 +3,7 @@ module Middleware.History exposing (middleware)
 import Html exposing (Html)
 import Html.Attributes
 import Program
-import Program.Types exposing (Middleware)
+import Program.Types exposing (Middleware, HasInnerModel)
 
 
 type Msg innerMsg
@@ -14,7 +14,7 @@ type alias Model innerMsg =
     { history : List innerMsg }
 
 
-middleware : Middleware model (Model innerMsg) innerMsg (Msg innerMsg) programMsgs innerMsg
+middleware : Middleware model (Model innerMsg) innerMsg (Msg innerMsg) programMsgs programMsg
 middleware =
     { init = init
     , update = update
@@ -25,7 +25,9 @@ middleware =
     }
 
 
-init : (innerModel, Cmd innerMsg ) -> ( { Model innerMsg | innerModel : innerModel }, Cmd (Msg innerMsg) )
+init :
+    ( innerModel, Cmd innerMsg )
+    -> ( HasInnerModel (Model innerMsg) innerModel, Cmd (Msg innerMsg) )
 init ( innerModel, innerCmd ) =
     ( { innerModel = innerModel, history = [] }
     , Cmd.map Other innerCmd
@@ -34,9 +36,9 @@ init ( innerModel, innerCmd ) =
 
 update :
     Msg innerMsg
-    -> { Model innerMsg | innerModel : innerModel }
+    -> HasInnerModel (Model innerMsg) innerModel
     -> programMsgs
-    -> ( { Model innerMsg | innerModel : innerModel }, Cmd (Msg innerMsg), Maybe innerMsg )
+    -> ( HasInnerModel (Model innerMsg) innerModel, Cmd (Msg innerMsg), Maybe programMsg )
 update msg model programMsgs =
     ( { model
         | history =
@@ -57,13 +59,15 @@ unwrapMsg msg =
             Just innerMsg
 
 
-view : { Model innerMsg | innerModel : innerModel } -> Html (Msg innerMsg)
-     -> Html (Msg innerMsg)
+view :
+    HasInnerModel (Model innerMsg) innerModel
+    -> Html (Msg innerMsg)
+    -> Html (Msg innerMsg)
 view model innerView =
     Html.div [ Html.Attributes.class "history" ]
         [ Html.text <| "history middleware here!"
-        , viewHistory model.history
         , innerView
+        , viewHistory model.history
         ]
 
 

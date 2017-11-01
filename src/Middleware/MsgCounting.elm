@@ -3,7 +3,7 @@ module Middleware.MsgCounting exposing (middleware)
 import Html exposing (Html)
 import Html.Attributes
 import Program
-import Program.Types exposing (Middleware)
+import Program.Types exposing (Middleware, HasInnerModel)
 
 
 type Msg innerMsg
@@ -25,7 +25,9 @@ middleware =
     }
 
 
-init : ( innerModel, Cmd innerMsg ) -> ( { Model | innerModel : innerModel }, Cmd (Msg innerMsg) )
+init :
+    ( innerModel, Cmd innerMsg )
+    -> ( HasInnerModel Model innerModel, Cmd (Msg innerMsg) )
 init ( innerModel, innerCmd ) =
     ( { innerModel = innerModel, msgCounter = 0 }
     , Cmd.map Other innerCmd
@@ -34,14 +36,14 @@ init ( innerModel, innerCmd ) =
 
 update :
     Msg innerMsg
-    -> { Model | innerModel : innerModel }
+    -> HasInnerModel Model innerModel
     -> programMsgs
-    -> ( { Model | innerModel : innerModel }, Cmd (Msg innerMsg), Maybe programMsg )
+    -> ( HasInnerModel Model innerModel, Cmd (Msg innerMsg), Maybe programMsg )
 update msg model programMsgs =
-        ( { model | msgCounter = model.msgCounter + 1 }
-        , Cmd.none
-        , Nothing
-        )
+    ( { model | msgCounter = model.msgCounter + 1 }
+    , Cmd.none
+    , Nothing
+    )
 
 
 unwrapMsg : Msg innerMsg -> Maybe innerMsg
@@ -51,7 +53,10 @@ unwrapMsg msg =
             Just innerMsg
 
 
-view : { Model | innerModel : innerModel } -> Html (Msg innerMsg) -> Html (Msg innerMsg)
+view :
+    HasInnerModel Model innerModel
+    -> Html (Msg innerMsg)
+    -> Html (Msg innerMsg)
 view model innerView =
     Html.div [ Html.Attributes.class "msg-counting" ]
         [ Html.text <| "msg counting middleware here! current msg count: " ++ toString model.msgCounter

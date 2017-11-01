@@ -1,14 +1,14 @@
 module Program.Compose3 exposing (init, subscriptions, update, view)
 
 import Html exposing (Html)
-import Program.Types exposing (Middleware, ProgramRecord)
+import Program.Types exposing (Middleware, ProgramRecord, HasInnerModel)
 
 
 init :
-    Middleware { modelIn | innerModel : modelProgram } modelOut msgIn msgOut programMsgs msgProgram
+    Middleware (HasInnerModel modelIn modelProgram) modelOut msgIn msgOut programMsgs msgProgram
     -> Middleware modelProgram modelIn msgProgram msgIn programMsgs msgProgram
     -> ProgramRecord modelProgram msgProgram programMsgs
-    -> ( { modelOut | innerModel : { modelIn | innerModel : modelProgram } }, Cmd msgOut )
+    -> ( HasInnerModel modelOut (HasInnerModel modelIn modelProgram), Cmd msgOut )
 init middlewareOut middlewareIn program =
     program.init
         |> middlewareIn.init
@@ -16,10 +16,10 @@ init middlewareOut middlewareIn program =
 
 
 subscriptions :
-    Middleware { modelIn | innerModel : modelProgram } modelOut msgIn msgOut programMsgs msgProgram
+    Middleware (HasInnerModel modelIn modelProgram) modelOut msgIn msgOut programMsgs msgProgram
     -> Middleware modelProgram modelIn msgProgram msgIn programMsgs msgProgram
     -> ProgramRecord modelProgram msgProgram programMsgs
-    -> { modelOut | innerModel : { modelIn | innerModel : modelProgram } }
+    -> HasInnerModel modelOut (HasInnerModel modelIn modelProgram)
     -> Sub msgOut
 subscriptions middlewareOut middlewareIn program model =
     let
@@ -43,12 +43,12 @@ subscriptions middlewareOut middlewareIn program model =
 
 
 update :
-    Middleware { modelIn | innerModel : modelProgram } modelOut msgIn msgOut programMsgs msgProgram
+    Middleware (HasInnerModel modelIn modelProgram) modelOut msgIn msgOut programMsgs msgProgram
     -> Middleware modelProgram modelIn msgProgram msgIn programMsgs msgProgram
     -> ProgramRecord modelProgram msgProgram programMsgs
     -> msgOut
-    -> { modelOut | innerModel : { modelIn | innerModel : modelProgram } }
-    -> ( { modelOut | innerModel : { modelIn | innerModel : modelProgram } }, Cmd msgOut )
+    -> HasInnerModel modelOut (HasInnerModel modelIn modelProgram)
+    -> ( HasInnerModel modelOut (HasInnerModel modelIn modelProgram), Cmd msgOut )
 update middlewareOut middlewareIn program msgOut modelOut =
     let
         updateProgramMsg msgProgram modelOut cmdOut =
@@ -121,10 +121,10 @@ update middlewareOut middlewareIn program msgOut modelOut =
 
 
 view :
-    Middleware { modelIn | innerModel : modelProgram } modelOut msgIn msgOut programMsgs msgProgram
+    Middleware (HasInnerModel modelIn modelProgram) modelOut msgIn msgOut programMsgs msgProgram
     -> Middleware modelProgram modelIn msgProgram msgIn programMsgs msgProgram
     -> ProgramRecord modelProgram msgProgram programMsgs
-    -> { modelOut | innerModel : { modelIn | innerModel : modelProgram } }
+    -> HasInnerModel modelOut (HasInnerModel modelIn modelProgram)
     -> Html msgOut
 view middlewareOut middlewareIn program model =
     let

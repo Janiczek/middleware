@@ -1,13 +1,13 @@
 module Program.Compose2 exposing (init, subscriptions, update, view)
 
 import Html exposing (Html)
-import Program.Types exposing (Middleware, ProgramRecord)
+import Program.Types exposing (Middleware, ProgramRecord, HasInnerModel)
 
 
 init :
     Middleware modelProgram modelMiddleware msgProgram msgMiddleware programMsgs msgProgram
     -> ProgramRecord modelProgram msgProgram programMsgs
-    -> ( { modelMiddleware | innerModel : modelProgram }, Cmd msgMiddleware )
+    -> ( HasInnerModel modelMiddleware modelProgram, Cmd msgMiddleware )
 init middleware program =
     program.init
         |> middleware.init
@@ -16,7 +16,7 @@ init middleware program =
 view :
     Middleware modelProgram modelMiddleware msgProgram msgMiddleware programMsgs msgProgram
     -> ProgramRecord modelProgram msgProgram programMsgs
-    -> { modelMiddleware | innerModel : modelProgram }
+    -> HasInnerModel modelMiddleware modelProgram
     -> Html msgMiddleware
 view middleware program model =
     middleware.view model
@@ -29,8 +29,8 @@ update :
     Middleware modelProgram modelMiddleware msgProgram msgMiddleware programMsgs msgProgram
     -> ProgramRecord modelProgram msgProgram programMsgs
     -> msgMiddleware
-    -> { modelMiddleware | innerModel : modelProgram }
-    -> ( { modelMiddleware | innerModel : modelProgram }, Cmd msgMiddleware )
+    -> HasInnerModel modelMiddleware modelProgram
+    -> ( HasInnerModel modelMiddleware modelProgram, Cmd msgMiddleware )
 update middleware program msgMiddleware modelMiddleware =
     let
         updateProgramMsg msgProgram modelMiddleware cmdMiddleware =
@@ -68,7 +68,7 @@ update middleware program msgMiddleware modelMiddleware =
 subscriptions :
     Middleware modelProgram modelMiddleware msgProgram msgMiddleware programMsgs msgProgram
     -> ProgramRecord modelProgram msgProgram programMsgs
-    -> { modelMiddleware | innerModel : modelProgram }
+    -> HasInnerModel modelMiddleware modelProgram
     -> Sub msgMiddleware
 subscriptions middleware program model =
     let

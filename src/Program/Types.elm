@@ -17,24 +17,24 @@ type alias ProgramRecord model msg programMsgs =
     }
 
 
-type alias Middleware innerModel thisModel innerMsg newMsg programMsgs programMsg =
+type alias Middleware innerModel thisModel innerMsg outerMsg programMsgs programMsg =
     { init :
         ( innerModel, Cmd innerMsg )
-        -> ( { thisModel | innerModel : innerModel }, Cmd newMsg )
+        -> ( HasInnerModel thisModel innerModel, Cmd outerMsg )
     , update :
-        newMsg
-        -> { thisModel | innerModel : innerModel }
+        outerMsg
+        -> HasInnerModel thisModel innerModel
         -> programMsgs
-        -> ( { thisModel | innerModel : innerModel }, Cmd newMsg, Maybe programMsg )
+        -> ( HasInnerModel thisModel innerModel, Cmd outerMsg, Maybe programMsg )
     , subscriptions :
-        { thisModel | innerModel : innerModel }
-        -> Sub newMsg
-    , wrapMsg : innerMsg -> newMsg
-    , unwrapMsg : newMsg -> Maybe innerMsg
+        HasInnerModel thisModel innerModel
+        -> Sub outerMsg
+    , wrapMsg : innerMsg -> outerMsg
+    , unwrapMsg : outerMsg -> Maybe innerMsg
     , view :
-        { thisModel | innerModel : innerModel }
-        -> Html newMsg
-        -> Html newMsg
+        HasInnerModel thisModel innerModel
+        -> Html outerMsg
+        -> Html outerMsg
     }
 
 

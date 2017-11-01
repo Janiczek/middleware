@@ -19,9 +19,9 @@ import Program.Types exposing (..)
 
 
 initNoop :
-    (innerMsg -> newMsg)
-    -> ( model, Cmd innerMsg )
-    -> ( { innerModel : model }, Cmd newMsg )
+    (innerMsg -> outerMsg)
+    -> ( innerModel, Cmd innerMsg )
+    -> ( HasInnerModel {} innerModel, Cmd outerMsg )
 initNoop tagger ( innerModel, innerCmd ) =
     ( { innerModel = innerModel }
     , Cmd.map tagger innerCmd
@@ -37,7 +37,7 @@ updateNoop :
     msg
     -> model
     -> programMsgs
-    -> ( model, Cmd msg, Maybe innerMsg )
+    -> ( model, Cmd msg, Maybe programMsg )
 updateNoop msg model programMsgs =
     ( model, Cmd.none, Nothing )
 
@@ -54,7 +54,7 @@ viewNoop model innerView =
 compose2 :
     Middleware modelProgram modelMiddleware msgProgram msgMiddleware programMsgs msgProgram
     -> ProgramRecord modelProgram msgProgram programMsgs
-    -> Program Never { modelMiddleware | innerModel : modelProgram } msgMiddleware
+    -> Program Never (HasInnerModel modelMiddleware modelProgram) msgMiddleware
 compose2 middleware program =
     Html.program
         { init = C2.init middleware program
@@ -65,10 +65,10 @@ compose2 middleware program =
 
 
 compose3 :
-    Middleware { modelIn | innerModel : modelProgram } modelOut msgIn msgOut programMsgs msgProgram
+    Middleware (HasInnerModel modelIn modelProgram) modelOut msgIn msgOut programMsgs msgProgram
     -> Middleware modelProgram modelIn msgProgram msgIn programMsgs msgProgram
     -> ProgramRecord modelProgram msgProgram programMsgs
-    -> Program Never { modelOut | innerModel : { modelIn | innerModel : modelProgram } } msgOut
+    -> Program Never (HasInnerModel modelOut (HasInnerModel modelIn modelProgram)) msgOut
 compose3 middlewareOut middlewareIn program =
     Html.program
         { init = C3.init middlewareOut middlewareIn program
