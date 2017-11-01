@@ -2,6 +2,7 @@ module Program.Compose2 exposing (init, subscriptions, update, view)
 
 import Html exposing (Html)
 import Program.Types exposing (Middleware, ProgramRecord, HasInnerModel)
+import Task
 
 
 init :
@@ -32,7 +33,15 @@ update :
     -> HasInnerModel modelMiddleware modelProgram
     -> ( HasInnerModel modelMiddleware modelProgram, Cmd msgMiddleware )
 update middleware program msgMiddleware modelMiddleware =
+    -- TODO optimize: if one middleware/program already reacted to the Msg, don't let others try to react to it
     let
+        scheduleMsg msgProgram cmdMiddleware =
+            Cmd.batch
+                [ cmdMiddleware
+                , Task.perform identity (Task.succeed msgProgram)
+                    |> Cmd.map middleware.wrapMsg
+                ]
+
         updateProgramMsg msgProgram modelMiddleware cmdMiddleware =
             let
                 ( modelProgramAfterMsg, cmdProgramAfterMsg ) =
@@ -46,19 +55,19 @@ update middleware program msgMiddleware modelMiddleware =
                     ]
                 )
 
-        ( modelMiddlewareAfterMiddleware, cmdAfterMiddleware, maybeCrossMsg ) =
+        ( modelMiddlewareAfterMiddleware, cmdAfterMiddleware, maybeProgramMsg ) =
             middleware.update msgMiddleware modelMiddleware program.programMsgs
 
-        ( modelMiddlewareAfterCrossMsg, cmdAfterCrossMsg ) =
-            maybeCrossMsg
-                |> Maybe.map (\msg -> updateProgramMsg msg modelMiddlewareAfterMiddleware cmdAfterMiddleware)
-                |> Maybe.withDefault ( modelMiddlewareAfterMiddleware, cmdAfterMiddleware )
+        cmdAfterProgramMsg =
+            maybeProgramMsg
+                |> Maybe.map (\msg -> scheduleMsg msg cmdAfterMiddleware)
+                |> Maybe.withDefault cmdAfterMiddleware
 
         ( modelMiddlewareAfterProgram, cmdAfterProgram ) =
             msgMiddleware
                 |> middleware.unwrapMsg
-                |> Maybe.map (\msg -> updateProgramMsg msg modelMiddlewareAfterCrossMsg cmdAfterCrossMsg)
-                |> Maybe.withDefault ( modelMiddlewareAfterCrossMsg, cmdAfterCrossMsg )
+                |> Maybe.map (\msg -> updateProgramMsg msg modelMiddlewareAfterMiddleware cmdAfterProgramMsg)
+                |> Maybe.withDefault ( modelMiddlewareAfterMiddleware, cmdAfterProgramMsg )
     in
         ( modelMiddlewareAfterProgram
         , cmdAfterProgram
