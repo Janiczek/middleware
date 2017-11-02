@@ -84,11 +84,13 @@ subscriptions middleware program model =
         programSubs =
             program.subscriptions model.innerModel
 
-        middlewareSubs =
-            middleware.subscriptions model
+        ( middlewareSubs, middlewareSubsForProgram ) =
+            middleware.subscriptions model program.programMsgs
     in
         Sub.batch
             [ programSubs
                 |> Sub.map middleware.wrapMsg
             , middlewareSubs
+            , middlewareSubsForProgram
+                |> Sub.map middleware.wrapMsg
             ]

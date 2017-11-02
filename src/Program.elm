@@ -28,9 +28,9 @@ initNoop tagger ( innerModel, innerCmd ) =
     )
 
 
-subscriptionsNoop : model -> Sub msg
-subscriptionsNoop model =
-    Sub.none
+subscriptionsNoop : model -> programMsgs -> ( Sub msg, Sub programMsg )
+subscriptionsNoop model programMsgs =
+    ( Sub.none, Sub.none )
 
 
 updateNoop :

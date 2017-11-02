@@ -28,7 +28,8 @@ type alias Middleware innerModel thisModel innerMsg outerMsg programMsgs program
         -> ( HasInnerModel thisModel innerModel, Cmd outerMsg, Maybe programMsg )
     , subscriptions :
         HasInnerModel thisModel innerModel
-        -> Sub outerMsg
+        -> programMsgs
+        -> ( Sub outerMsg, Sub programMsg )
     , wrapMsg : innerMsg -> outerMsg
     , unwrapMsg : outerMsg -> Maybe innerMsg
     , view :

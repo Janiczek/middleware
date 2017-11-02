@@ -54,9 +54,12 @@ update msg model programMsgs =
 
 subscriptions :
     HasInnerModel Model innerModel
-    -> Sub (Msg innerMsg)
-subscriptions model =
-    Time.every (500 * Time.millisecond) (always ToggleFlash)
+    -> programMsgs
+    -> ( Sub (Msg innerMsg), Sub programMsg )
+subscriptions model programMsgs =
+    ( Time.every (500 * Time.millisecond) (always ToggleFlash)
+    , Sub.none
+    )
 
 
 unwrapMsg : Msg innerMsg -> Maybe innerMsg

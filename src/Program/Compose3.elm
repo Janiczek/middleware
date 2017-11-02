@@ -27,11 +27,11 @@ subscriptions middlewareOut middlewareIn program model =
         programSubs =
             program.subscriptions model.innerModel.innerModel
 
-        middlewareInSubs =
-            middlewareIn.subscriptions model.innerModel
+        ( middlewareInSubs, middlewareInSubsForProgram ) =
+            middlewareIn.subscriptions model.innerModel program.programMsgs
 
-        middlewareOutSubs =
-            middlewareOut.subscriptions model
+        ( middlewareOutSubs, middlewareOutSubsForProgram ) =
+            middlewareOut.subscriptions model program.programMsgs
     in
         Sub.batch
             [ programSubs
@@ -40,6 +40,12 @@ subscriptions middlewareOut middlewareIn program model =
             , middlewareInSubs
                 |> Sub.map middlewareOut.wrapMsg
             , middlewareOutSubs
+            , middlewareInSubsForProgram
+                |> Sub.map middlewareIn.wrapMsg
+                |> Sub.map middlewareOut.wrapMsg
+            , middlewareOutSubsForProgram
+                |> Sub.map middlewareIn.wrapMsg
+                |> Sub.map middlewareOut.wrapMsg
             ]
 
 

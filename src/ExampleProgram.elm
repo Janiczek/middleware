@@ -2,47 +2,60 @@ module ExampleProgram exposing (program)
 
 import Html exposing (Html)
 import Html.Attributes
+import Middleware.Navigation exposing (Location)
 import Program.Types exposing (ProgramRecord)
 import Time
 
 
 type alias Model =
-    Int
+    { counter : Int
+    , locations : Int
+    }
 
 
 type Msg
     = Increment
     | Double
       -- called from ResetByMsg middleware:
-    | Reset
+    | LocationChanged Location
 
 
-program : ProgramRecord Model Msg { reset : Msg }
+type alias ProgramMsgs =
+    { location : Location -> Msg }
+
+
+program : ProgramRecord Model Msg ProgramMsgs
 program =
     { init = init
     , update = update
     , subscriptions = subscriptions
     , view = view
-    , programMsgs = { reset = Reset }
+    , programMsgs = { location = LocationChanged }
     }
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( 0, Cmd.none )
+    ( Model 0 0, Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update msg { counter, locations } =
     case msg of
         Increment ->
-            ( (model + 1), Cmd.none )
+            ( Model (counter + 1) locations
+            , Cmd.none
+            )
 
         Double ->
-            ( (model * 2), Cmd.none )
+            ( Model (counter * 2) locations
+            , Cmd.none
+            )
 
-        Reset ->
-            ( 0, Cmd.none )
+        LocationChanged location ->
+            ( Model counter (locations + 1)
+            , Cmd.none
+            )
 
 
 subscriptions : Model -> Sub Msg
@@ -56,4 +69,4 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
     Html.div [ Html.Attributes.class "program" ]
-        [ Html.text <| "program here! counter: " ++ toString model ]
+        [ Html.text <| "program here! model: " ++ toString model ]
