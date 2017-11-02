@@ -9137,6 +9137,25 @@ var _Janiczek$middleware$Middleware_Navigation$onSelfMsg = F3(
 			A3(_Janiczek$middleware$Middleware_Navigation$notify, router, state.subs, location),
 			_elm_lang$core$Task$succeed(state));
 	});
+var _Janiczek$middleware$Middleware_Navigation$view = F2(
+	function (model, innerView) {
+		return A2(
+			_elm_lang$html$Html$div,
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html_Attributes$class('navigation'),
+				_1: {ctor: '[]'}
+			},
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html$text('navigation middleware here! try changing the #hash in URL!'),
+				_1: {
+					ctor: '::',
+					_0: innerView,
+					_1: {ctor: '[]'}
+				}
+			});
+	});
 var _Janiczek$middleware$Middleware_Navigation$unwrapMsg = function (msg) {
 	var _p5 = msg;
 	return _elm_lang$core$Maybe$Just(_p5._0);
@@ -9204,7 +9223,7 @@ var _Janiczek$middleware$Middleware_Navigation$middleware = {
 	subscriptions: _Janiczek$middleware$Middleware_Navigation$subscriptions,
 	wrapMsg: _Janiczek$middleware$Middleware_Navigation$Other,
 	unwrapMsg: _Janiczek$middleware$Middleware_Navigation$unwrapMsg,
-	view: _Janiczek$middleware$Program$viewNoop
+	view: _Janiczek$middleware$Middleware_Navigation$view
 };
 var _Janiczek$middleware$Middleware_Navigation$subMap = F2(
 	function (func, _p10) {
@@ -9469,7 +9488,7 @@ var _Janiczek$middleware$Middleware_History$init = function (_p1) {
 	};
 };
 var _Janiczek$middleware$Middleware_History$middleware = {init: _Janiczek$middleware$Middleware_History$init, update: _Janiczek$middleware$Middleware_History$update, subscriptions: _Janiczek$middleware$Program$subscriptionsNoop, wrapMsg: _Janiczek$middleware$Middleware_History$Other, unwrapMsg: _Janiczek$middleware$Middleware_History$unwrapMsg, view: _Janiczek$middleware$Middleware_History$view};
-var _Janiczek$middleware$Main$main = A3(_Janiczek$middleware$Program$compose3, _Janiczek$middleware$Middleware_History$middleware, _Janiczek$middleware$Middleware_Navigation$middleware, _Janiczek$middleware$ExampleProgram$program)();
+var _Janiczek$middleware$Main$main = A3(_Janiczek$middleware$Program$compose3, _Janiczek$middleware$Middleware_Navigation$middleware, _Janiczek$middleware$Middleware_History$middleware, _Janiczek$middleware$ExampleProgram$program)();
 var Elm = {};
 Elm['Main'] = Elm['Main'] || {};
 if (typeof _Janiczek$middleware$Main$main !== 'undefined') {
