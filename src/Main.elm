@@ -8,6 +8,6 @@ import Program
 
 main =
     Program.compose3
-        Middleware.History.middleware
         Middleware.Navigation.middleware
+        Middleware.History.middleware
         ExampleProgram.program

@@ -6,6 +6,8 @@ effect module Middleware.Navigation
         )
 
 import Dom.LowLevel exposing (onWindow)
+import Html exposing (Html)
+import Html.Attributes
 import Json.Decode as Json
 import Native.Middleware.Navigation
 import Process
@@ -37,7 +39,7 @@ middleware =
     , subscriptions = subscriptions
     , wrapMsg = Other
     , unwrapMsg = unwrapMsg
-    , view = Program.viewNoop
+    , view = view
     }
 
 
@@ -56,6 +58,18 @@ subscriptions model { location } =
     ( Sub.none
     , subscription (Monitor location)
     )
+
+
+view :
+    HasInnerModel Model innerModel
+    -> Html (Msg innerMsg)
+    -> Html (Msg innerMsg)
+view model innerView =
+    Html.div
+        [ Html.Attributes.class "navigation" ]
+        [ Html.text "navigation middleware here! try changing the #hash in URL!"
+        , innerView
+        ]
 
 
 
