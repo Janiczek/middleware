@@ -8117,41 +8117,189 @@ var _elm_lang$html$Html_Attributes$classList = function (list) {
 				A2(_elm_lang$core$List$filter, _elm_lang$core$Tuple$second, list))));
 };
 var _elm_lang$html$Html_Attributes$style = _elm_lang$virtual_dom$VirtualDom$style;
-var _Janiczek$middleware$Program_Types$ProgramRecord = F5(
-	function (a, b, c, d, e) {
-		return {init: a, update: b, subscriptions: c, view: d, programMsgs: e};
-	});
-var _Janiczek$middleware$Program_Types$Middleware = F6(
-	function (a, b, c, d, e, f) {
-		return {init: a, update: b, subscriptions: c, wrapMsg: d, unwrapMsg: e, view: f};
-	});
-//import Native.Scheduler //
+var _elm_lang$dom$Native_Dom = function() {
 
-var _elm_lang$core$Native_Time = function() {
+var fakeNode = {
+	addEventListener: function() {},
+	removeEventListener: function() {}
+};
 
-var now = _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+var onDocument = on(typeof document !== 'undefined' ? document : fakeNode);
+var onWindow = on(typeof window !== 'undefined' ? window : fakeNode);
+
+function on(node)
 {
-	callback(_elm_lang$core$Native_Scheduler.succeed(Date.now()));
-});
+	return function(eventName, decoder, toTask)
+	{
+		return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback) {
 
-function setInterval_(interval, task)
+			function performTask(event)
+			{
+				var result = A2(_elm_lang$core$Json_Decode$decodeValue, decoder, event);
+				if (result.ctor === 'Ok')
+				{
+					_elm_lang$core$Native_Scheduler.rawSpawn(toTask(result._0));
+				}
+			}
+
+			node.addEventListener(eventName, performTask);
+
+			return function()
+			{
+				node.removeEventListener(eventName, performTask);
+			};
+		});
+	};
+}
+
+var rAF = typeof requestAnimationFrame !== 'undefined'
+	? requestAnimationFrame
+	: function(callback) { callback(); };
+
+function withNode(id, doStuff)
 {
 	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
 	{
-		var id = setInterval(function() {
-			_elm_lang$core$Native_Scheduler.rawSpawn(task);
-		}, interval);
+		rAF(function()
+		{
+			var node = document.getElementById(id);
+			if (node === null)
+			{
+				callback(_elm_lang$core$Native_Scheduler.fail({ ctor: 'NotFound', _0: id }));
+				return;
+			}
+			callback(_elm_lang$core$Native_Scheduler.succeed(doStuff(node)));
+		});
+	});
+}
 
-		return function() { clearInterval(id); };
+
+// FOCUS
+
+function focus(id)
+{
+	return withNode(id, function(node) {
+		node.focus();
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+function blur(id)
+{
+	return withNode(id, function(node) {
+		node.blur();
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+
+// SCROLLING
+
+function getScrollTop(id)
+{
+	return withNode(id, function(node) {
+		return node.scrollTop;
+	});
+}
+
+function setScrollTop(id, desiredScrollTop)
+{
+	return withNode(id, function(node) {
+		node.scrollTop = desiredScrollTop;
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+function toBottom(id)
+{
+	return withNode(id, function(node) {
+		node.scrollTop = node.scrollHeight;
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+function getScrollLeft(id)
+{
+	return withNode(id, function(node) {
+		return node.scrollLeft;
+	});
+}
+
+function setScrollLeft(id, desiredScrollLeft)
+{
+	return withNode(id, function(node) {
+		node.scrollLeft = desiredScrollLeft;
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+function toRight(id)
+{
+	return withNode(id, function(node) {
+		node.scrollLeft = node.scrollWidth;
+		return _elm_lang$core$Native_Utils.Tuple0;
+	});
+}
+
+
+// SIZE
+
+function width(options, id)
+{
+	return withNode(id, function(node) {
+		switch (options.ctor)
+		{
+			case 'Content':
+				return node.scrollWidth;
+			case 'VisibleContent':
+				return node.clientWidth;
+			case 'VisibleContentWithBorders':
+				return node.offsetWidth;
+			case 'VisibleContentWithBordersAndMargins':
+				var rect = node.getBoundingClientRect();
+				return rect.right - rect.left;
+		}
+	});
+}
+
+function height(options, id)
+{
+	return withNode(id, function(node) {
+		switch (options.ctor)
+		{
+			case 'Content':
+				return node.scrollHeight;
+			case 'VisibleContent':
+				return node.clientHeight;
+			case 'VisibleContentWithBorders':
+				return node.offsetHeight;
+			case 'VisibleContentWithBordersAndMargins':
+				var rect = node.getBoundingClientRect();
+				return rect.bottom - rect.top;
+		}
 	});
 }
 
 return {
-	now: now,
-	setInterval_: F2(setInterval_)
+	onDocument: F3(onDocument),
+	onWindow: F3(onWindow),
+
+	focus: focus,
+	blur: blur,
+
+	getScrollTop: getScrollTop,
+	setScrollTop: F2(setScrollTop),
+	getScrollLeft: getScrollLeft,
+	setScrollLeft: F2(setScrollLeft),
+	toBottom: toBottom,
+	toRight: toRight,
+
+	height: F2(height),
+	width: F2(width)
 };
 
-}();var _elm_lang$core$Task$onError = _elm_lang$core$Native_Scheduler.onError;
+}();
+var _elm_lang$core$Task$onError = _elm_lang$core$Native_Scheduler.onError;
 var _elm_lang$core$Task$andThen = _elm_lang$core$Native_Scheduler.andThen;
 var _elm_lang$core$Task$spawnCmd = F2(
 	function (router, _p0) {
@@ -8347,7 +8495,73 @@ var _elm_lang$core$Task$cmdMap = F2(
 			A2(_elm_lang$core$Task$map, tagger, _p11._0));
 	});
 _elm_lang$core$Native_Platform.effectManagers['Task'] = {pkg: 'elm-lang/core', init: _elm_lang$core$Task$init, onEffects: _elm_lang$core$Task$onEffects, onSelfMsg: _elm_lang$core$Task$onSelfMsg, tag: 'cmd', cmdMap: _elm_lang$core$Task$cmdMap};
-var _elm_lang$core$Time$setInterval = _elm_lang$core$Native_Time.setInterval_;
+var _elm_lang$dom$Dom_LowLevel$onWindow = _elm_lang$dom$Native_Dom.onWindow;
+var _elm_lang$dom$Dom_LowLevel$onDocument = _elm_lang$dom$Native_Dom.onDocument;
+var _Janiczek$middleware$Native_Middleware_Navigation = function() {
+
+// GET LOCATION
+
+function getLocation()
+{
+	var location = document.location;
+
+	return {
+		href: location.href,
+		host: location.host,
+		hostname: location.hostname,
+		protocol: location.protocol,
+		origin: location.origin,
+		port_: location.port,
+		pathname: location.pathname,
+		search: location.search,
+		hash: location.hash,
+		username: location.username,
+		password: location.password
+	};
+}
+
+
+// DETECT IE11 PROBLEMS
+
+function isInternetExplorer11()
+{
+	return window.navigator.userAgent.indexOf('Trident') !== -1;
+}
+
+
+return {
+	getLocation: getLocation,
+	isInternetExplorer11: isInternetExplorer11
+};
+
+}();
+//import Native.Scheduler //
+
+var _elm_lang$core$Native_Time = function() {
+
+var now = _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+{
+	callback(_elm_lang$core$Native_Scheduler.succeed(Date.now()));
+});
+
+function setInterval_(interval, task)
+{
+	return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback)
+	{
+		var id = setInterval(function() {
+			_elm_lang$core$Native_Scheduler.rawSpawn(task);
+		}, interval);
+
+		return function() { clearInterval(id); };
+	});
+}
+
+return {
+	now: now,
+	setInterval_: F2(setInterval_)
+};
+
+}();var _elm_lang$core$Time$setInterval = _elm_lang$core$Native_Time.setInterval_;
 var _elm_lang$core$Time$spawnHelp = F3(
 	function (router, intervals, processes) {
 		var _p0 = intervals;
@@ -8534,68 +8748,22 @@ var _elm_lang$core$Time$subMap = F2(
 			});
 	});
 _elm_lang$core$Native_Platform.effectManagers['Time'] = {pkg: 'elm-lang/core', init: _elm_lang$core$Time$init, onEffects: _elm_lang$core$Time$onEffects, onSelfMsg: _elm_lang$core$Time$onSelfMsg, tag: 'sub', subMap: _elm_lang$core$Time$subMap};
-var _Janiczek$middleware$ExampleProgram$view = function (model) {
-	return A2(
-		_elm_lang$html$Html$div,
-		{
-			ctor: '::',
-			_0: _elm_lang$html$Html_Attributes$class('program'),
-			_1: {ctor: '[]'}
-		},
-		{
-			ctor: '::',
-			_0: _elm_lang$html$Html$text(
-				A2(
-					_elm_lang$core$Basics_ops['++'],
-					'program here! counter: ',
-					_elm_lang$core$Basics$toString(model))),
-			_1: {ctor: '[]'}
-		});
-};
-var _Janiczek$middleware$ExampleProgram$update = F2(
-	function (msg, model) {
-		var _p0 = msg;
-		switch (_p0.ctor) {
-			case 'Increment':
-				return {ctor: '_Tuple2', _0: model + 1, _1: _elm_lang$core$Platform_Cmd$none};
-			case 'Double':
-				return {ctor: '_Tuple2', _0: model * 2, _1: _elm_lang$core$Platform_Cmd$none};
-			default:
-				return {ctor: '_Tuple2', _0: 0, _1: _elm_lang$core$Platform_Cmd$none};
-		}
+var _elm_lang$core$Process$kill = _elm_lang$core$Native_Scheduler.kill;
+var _elm_lang$core$Process$sleep = _elm_lang$core$Native_Scheduler.sleep;
+var _elm_lang$core$Process$spawn = _elm_lang$core$Native_Scheduler.spawn;
+var _Janiczek$middleware$Program_Types$ProgramRecord = F5(
+	function (a, b, c, d, e) {
+		return {init: a, update: b, subscriptions: c, view: d, programMsgs: e};
 	});
-var _Janiczek$middleware$ExampleProgram$init = {ctor: '_Tuple2', _0: 0, _1: _elm_lang$core$Platform_Cmd$none};
-var _Janiczek$middleware$ExampleProgram$Reset = {ctor: 'Reset'};
-var _Janiczek$middleware$ExampleProgram$Double = {ctor: 'Double'};
-var _Janiczek$middleware$ExampleProgram$Increment = {ctor: 'Increment'};
-var _Janiczek$middleware$ExampleProgram$subscriptions = function (model) {
-	return _elm_lang$core$Platform_Sub$batch(
-		{
-			ctor: '::',
-			_0: A2(
-				_elm_lang$core$Time$every,
-				_elm_lang$core$Time$second,
-				_elm_lang$core$Basics$always(_Janiczek$middleware$ExampleProgram$Increment)),
-			_1: {
-				ctor: '::',
-				_0: A2(
-					_elm_lang$core$Time$every,
-					2 * _elm_lang$core$Time$second,
-					_elm_lang$core$Basics$always(_Janiczek$middleware$ExampleProgram$Double)),
-				_1: {ctor: '[]'}
-			}
-		});
-};
-var _Janiczek$middleware$ExampleProgram$program = {
-	init: _Janiczek$middleware$ExampleProgram$init,
-	update: _Janiczek$middleware$ExampleProgram$update,
-	subscriptions: _Janiczek$middleware$ExampleProgram$subscriptions,
-	view: _Janiczek$middleware$ExampleProgram$view,
-	programMsgs: {reset: _Janiczek$middleware$ExampleProgram$Reset}
-};
+var _Janiczek$middleware$Program_Types$Middleware = F6(
+	function (a, b, c, d, e, f) {
+		return {init: a, update: b, subscriptions: c, wrapMsg: d, unwrapMsg: e, view: f};
+	});
 var _Janiczek$middleware$Program_Compose2$subscriptions = F3(
 	function (middleware, program, model) {
-		var middlewareSubs = middleware.subscriptions(model);
+		var _p0 = A2(middleware.subscriptions, model, program.programMsgs);
+		var middlewareSubs = _p0._0;
+		var middlewareSubsForProgram = _p0._1;
 		var programSubs = program.subscriptions(model.innerModel);
 		return _elm_lang$core$Platform_Sub$batch(
 			{
@@ -8604,21 +8772,25 @@ var _Janiczek$middleware$Program_Compose2$subscriptions = F3(
 				_1: {
 					ctor: '::',
 					_0: middlewareSubs,
-					_1: {ctor: '[]'}
+					_1: {
+						ctor: '::',
+						_0: A2(_elm_lang$core$Platform_Sub$map, middleware.wrapMsg, middlewareSubsForProgram),
+						_1: {ctor: '[]'}
+					}
 				}
 			});
 	});
 var _Janiczek$middleware$Program_Compose2$update = F4(
 	function (middleware, program, msgMiddleware, modelMiddleware) {
-		var _p0 = A3(middleware.update, msgMiddleware, modelMiddleware, program.programMsgs);
-		var modelMiddlewareAfterMiddleware = _p0._0;
-		var cmdAfterMiddleware = _p0._1;
-		var maybeProgramMsg = _p0._2;
+		var _p1 = A3(middleware.update, msgMiddleware, modelMiddleware, program.programMsgs);
+		var modelMiddlewareAfterMiddleware = _p1._0;
+		var cmdAfterMiddleware = _p1._1;
+		var maybeProgramMsg = _p1._2;
 		var updateProgramMsg = F3(
 			function (msgProgram, modelMiddleware, cmdMiddleware) {
-				var _p1 = A2(program.update, msgProgram, modelMiddleware.innerModel);
-				var modelProgramAfterMsg = _p1._0;
-				var cmdProgramAfterMsg = _p1._1;
+				var _p2 = A2(program.update, msgProgram, modelMiddleware.innerModel);
+				var modelProgramAfterMsg = _p2._0;
+				var cmdProgramAfterMsg = _p2._1;
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
@@ -8664,7 +8836,7 @@ var _Janiczek$middleware$Program_Compose2$update = F4(
 					return A2(scheduleMsg, msg, cmdAfterMiddleware);
 				},
 				maybeProgramMsg));
-		var _p2 = A2(
+		var _p3 = A2(
 			_elm_lang$core$Maybe$withDefault,
 			{ctor: '_Tuple2', _0: modelMiddlewareAfterMiddleware, _1: cmdAfterProgramMsg},
 			A2(
@@ -8673,8 +8845,8 @@ var _Janiczek$middleware$Program_Compose2$update = F4(
 					return A3(updateProgramMsg, msg, modelMiddlewareAfterMiddleware, cmdAfterProgramMsg);
 				},
 				middleware.unwrapMsg(msgMiddleware)));
-		var modelMiddlewareAfterProgram = _p2._0;
-		var cmdAfterProgram = _p2._1;
+		var modelMiddlewareAfterProgram = _p3._0;
+		var cmdAfterProgram = _p3._1;
 		return {ctor: '_Tuple2', _0: modelMiddlewareAfterProgram, _1: cmdAfterProgram};
 	});
 var _Janiczek$middleware$Program_Compose2$view = F3(
@@ -8830,8 +9002,12 @@ var _Janiczek$middleware$Program_Compose3$update = F5(
 	});
 var _Janiczek$middleware$Program_Compose3$subscriptions = F4(
 	function (middlewareOut, middlewareIn, program, model) {
-		var middlewareOutSubs = middlewareOut.subscriptions(model);
-		var middlewareInSubs = middlewareIn.subscriptions(model.innerModel);
+		var _p6 = A2(middlewareOut.subscriptions, model, program.programMsgs);
+		var middlewareOutSubs = _p6._0;
+		var middlewareOutSubsForProgram = _p6._1;
+		var _p7 = A2(middlewareIn.subscriptions, model.innerModel, program.programMsgs);
+		var middlewareInSubs = _p7._0;
+		var middlewareInSubsForProgram = _p7._1;
 		var programSubs = program.subscriptions(model.innerModel.innerModel);
 		return _elm_lang$core$Platform_Sub$batch(
 			{
@@ -8846,7 +9022,21 @@ var _Janiczek$middleware$Program_Compose3$subscriptions = F4(
 					_1: {
 						ctor: '::',
 						_0: middlewareOutSubs,
-						_1: {ctor: '[]'}
+						_1: {
+							ctor: '::',
+							_0: A2(
+								_elm_lang$core$Platform_Sub$map,
+								middlewareOut.wrapMsg,
+								A2(_elm_lang$core$Platform_Sub$map, middlewareIn.wrapMsg, middlewareInSubsForProgram)),
+							_1: {
+								ctor: '::',
+								_0: A2(
+									_elm_lang$core$Platform_Sub$map,
+									middlewareOut.wrapMsg,
+									A2(_elm_lang$core$Platform_Sub$map, middlewareIn.wrapMsg, middlewareOutSubsForProgram)),
+								_1: {ctor: '[]'}
+							}
+						}
 					}
 				}
 			});
@@ -8884,9 +9074,10 @@ var _Janiczek$middleware$Program$updateNoop = F3(
 	function (msg, model, programMsgs) {
 		return {ctor: '_Tuple3', _0: model, _1: _elm_lang$core$Platform_Cmd$none, _2: _elm_lang$core$Maybe$Nothing};
 	});
-var _Janiczek$middleware$Program$subscriptionsNoop = function (model) {
-	return _elm_lang$core$Platform_Sub$none;
-};
+var _Janiczek$middleware$Program$subscriptionsNoop = F2(
+	function (model, programMsgs) {
+		return {ctor: '_Tuple2', _0: _elm_lang$core$Platform_Sub$none, _1: _elm_lang$core$Platform_Sub$none};
+	});
 var _Janiczek$middleware$Program$initNoop = F2(
 	function (tagger, _p0) {
 		var _p1 = _p0;
@@ -8896,6 +9087,296 @@ var _Janiczek$middleware$Program$initNoop = F2(
 			_1: A2(_elm_lang$core$Platform_Cmd$map, tagger, _p1._1)
 		};
 	});
+var _Janiczek$middleware$Middleware_Navigation$cmdHelp = F3(
+	function (router, subs, cmd) {
+		var _p0 = cmd;
+		return _elm_lang$core$Task$succeed(
+			{ctor: '_Tuple0'});
+	});
+var _Janiczek$middleware$Middleware_Navigation_ops = _Janiczek$middleware$Middleware_Navigation_ops || {};
+_Janiczek$middleware$Middleware_Navigation_ops['&>'] = F2(
+	function (task1, task2) {
+		return A2(
+			_elm_lang$core$Task$andThen,
+			function (_p1) {
+				return task2;
+			},
+			task1);
+	});
+var _Janiczek$middleware$Middleware_Navigation$notify = F3(
+	function (router, subs, location) {
+		var send = function (_p2) {
+			var _p3 = _p2;
+			return A2(
+				_elm_lang$core$Platform$sendToApp,
+				router,
+				_p3._0(location));
+		};
+		return A2(
+			_Janiczek$middleware$Middleware_Navigation_ops['&>'],
+			_elm_lang$core$Task$sequence(
+				A2(_elm_lang$core$List$map, send, subs)),
+			_elm_lang$core$Task$succeed(
+				{ctor: '_Tuple0'}));
+	});
+var _Janiczek$middleware$Middleware_Navigation$killPopWatcher = function (popWatcher) {
+	var _p4 = popWatcher;
+	if (_p4.ctor === 'Normal') {
+		return _elm_lang$core$Process$kill(_p4._0);
+	} else {
+		return A2(
+			_Janiczek$middleware$Middleware_Navigation_ops['&>'],
+			_elm_lang$core$Process$kill(_p4._0),
+			_elm_lang$core$Process$kill(_p4._1));
+	}
+};
+var _Janiczek$middleware$Middleware_Navigation$onSelfMsg = F3(
+	function (router, location, state) {
+		return A2(
+			_Janiczek$middleware$Middleware_Navigation_ops['&>'],
+			A3(_Janiczek$middleware$Middleware_Navigation$notify, router, state.subs, location),
+			_elm_lang$core$Task$succeed(state));
+	});
+var _Janiczek$middleware$Middleware_Navigation$unwrapMsg = function (msg) {
+	var _p5 = msg;
+	return _elm_lang$core$Maybe$Just(_p5._0);
+};
+var _Janiczek$middleware$Middleware_Navigation$subscription = _elm_lang$core$Native_Platform.leaf('Middleware.Navigation');
+var _Janiczek$middleware$Middleware_Navigation$command = _elm_lang$core$Native_Platform.leaf('Middleware.Navigation');
+var _Janiczek$middleware$Middleware_Navigation$Model = {};
+var _Janiczek$middleware$Middleware_Navigation$Location = function (a) {
+	return function (b) {
+		return function (c) {
+			return function (d) {
+				return function (e) {
+					return function (f) {
+						return function (g) {
+							return function (h) {
+								return function (i) {
+									return function (j) {
+										return function (k) {
+											return {href: a, host: b, hostname: c, protocol: d, origin: e, port_: f, pathname: g, search: h, hash: i, username: j, password: k};
+										};
+									};
+								};
+							};
+						};
+					};
+				};
+			};
+		};
+	};
+};
+var _Janiczek$middleware$Middleware_Navigation$State = F2(
+	function (a, b) {
+		return {subs: a, popWatcher: b};
+	});
+var _Janiczek$middleware$Middleware_Navigation$init = _elm_lang$core$Task$succeed(
+	A2(
+		_Janiczek$middleware$Middleware_Navigation$State,
+		{ctor: '[]'},
+		_elm_lang$core$Maybe$Nothing));
+var _Janiczek$middleware$Middleware_Navigation$Other = function (a) {
+	return {ctor: 'Other', _0: a};
+};
+var _Janiczek$middleware$Middleware_Navigation$NoOp = {ctor: 'NoOp'};
+var _Janiczek$middleware$Middleware_Navigation$cmdMap = F2(
+	function (_p6, myCmd) {
+		var _p7 = myCmd;
+		return _Janiczek$middleware$Middleware_Navigation$NoOp;
+	});
+var _Janiczek$middleware$Middleware_Navigation$Monitor = function (a) {
+	return {ctor: 'Monitor', _0: a};
+};
+var _Janiczek$middleware$Middleware_Navigation$subscriptions = F2(
+	function (model, _p8) {
+		var _p9 = _p8;
+		return {
+			ctor: '_Tuple2',
+			_0: _elm_lang$core$Platform_Sub$none,
+			_1: _Janiczek$middleware$Middleware_Navigation$subscription(
+				_Janiczek$middleware$Middleware_Navigation$Monitor(_p9.location))
+		};
+	});
+var _Janiczek$middleware$Middleware_Navigation$middleware = {
+	init: _Janiczek$middleware$Program$initNoop(_Janiczek$middleware$Middleware_Navigation$Other),
+	update: _Janiczek$middleware$Program$updateNoop,
+	subscriptions: _Janiczek$middleware$Middleware_Navigation$subscriptions,
+	wrapMsg: _Janiczek$middleware$Middleware_Navigation$Other,
+	unwrapMsg: _Janiczek$middleware$Middleware_Navigation$unwrapMsg,
+	view: _Janiczek$middleware$Program$viewNoop
+};
+var _Janiczek$middleware$Middleware_Navigation$subMap = F2(
+	function (func, _p10) {
+		var _p11 = _p10;
+		return _Janiczek$middleware$Middleware_Navigation$Monitor(
+			function (_p12) {
+				return func(
+					_p11._0(_p12));
+			});
+	});
+var _Janiczek$middleware$Middleware_Navigation$InternetExplorer = F2(
+	function (a, b) {
+		return {ctor: 'InternetExplorer', _0: a, _1: b};
+	});
+var _Janiczek$middleware$Middleware_Navigation$Normal = function (a) {
+	return {ctor: 'Normal', _0: a};
+};
+var _Janiczek$middleware$Middleware_Navigation$spawnPopWatcher = function (router) {
+	var reportLocation = function (_p13) {
+		return A2(
+			_elm_lang$core$Platform$sendToSelf,
+			router,
+			_Janiczek$middleware$Native_Middleware_Navigation.getLocation(
+				{ctor: '_Tuple0'}));
+	};
+	return _Janiczek$middleware$Native_Middleware_Navigation.isInternetExplorer11(
+		{ctor: '_Tuple0'}) ? A3(
+		_elm_lang$core$Task$map2,
+		_Janiczek$middleware$Middleware_Navigation$InternetExplorer,
+		_elm_lang$core$Process$spawn(
+			A3(_elm_lang$dom$Dom_LowLevel$onWindow, 'popstate', _elm_lang$core$Json_Decode$value, reportLocation)),
+		_elm_lang$core$Process$spawn(
+			A3(_elm_lang$dom$Dom_LowLevel$onWindow, 'hashchange', _elm_lang$core$Json_Decode$value, reportLocation))) : A2(
+		_elm_lang$core$Task$map,
+		_Janiczek$middleware$Middleware_Navigation$Normal,
+		_elm_lang$core$Process$spawn(
+			A3(_elm_lang$dom$Dom_LowLevel$onWindow, 'popstate', _elm_lang$core$Json_Decode$value, reportLocation)));
+};
+var _Janiczek$middleware$Middleware_Navigation$onEffects = F4(
+	function (router, cmds, subs, _p14) {
+		var _p15 = _p14;
+		var _p18 = _p15.popWatcher;
+		var stepState = function () {
+			var _p16 = {ctor: '_Tuple2', _0: subs, _1: _p18};
+			_v8_2:
+			do {
+				if (_p16._0.ctor === '[]') {
+					if (_p16._1.ctor === 'Just') {
+						return A2(
+							_Janiczek$middleware$Middleware_Navigation_ops['&>'],
+							_Janiczek$middleware$Middleware_Navigation$killPopWatcher(_p16._1._0),
+							_elm_lang$core$Task$succeed(
+								A2(_Janiczek$middleware$Middleware_Navigation$State, subs, _elm_lang$core$Maybe$Nothing)));
+					} else {
+						break _v8_2;
+					}
+				} else {
+					if (_p16._1.ctor === 'Nothing') {
+						return A2(
+							_elm_lang$core$Task$map,
+							function (_p17) {
+								return A2(
+									_Janiczek$middleware$Middleware_Navigation$State,
+									subs,
+									_elm_lang$core$Maybe$Just(_p17));
+							},
+							_Janiczek$middleware$Middleware_Navigation$spawnPopWatcher(router));
+					} else {
+						break _v8_2;
+					}
+				}
+			} while(false);
+			return _elm_lang$core$Task$succeed(
+				A2(_Janiczek$middleware$Middleware_Navigation$State, subs, _p18));
+		}();
+		return A2(
+			_Janiczek$middleware$Middleware_Navigation_ops['&>'],
+			_elm_lang$core$Task$sequence(
+				A2(
+					_elm_lang$core$List$map,
+					A2(_Janiczek$middleware$Middleware_Navigation$cmdHelp, router, subs),
+					cmds)),
+			stepState);
+	});
+_elm_lang$core$Native_Platform.effectManagers['Middleware.Navigation'] = {pkg: 'Janiczek/middleware', init: _Janiczek$middleware$Middleware_Navigation$init, onEffects: _Janiczek$middleware$Middleware_Navigation$onEffects, onSelfMsg: _Janiczek$middleware$Middleware_Navigation$onSelfMsg, tag: 'fx', cmdMap: _Janiczek$middleware$Middleware_Navigation$cmdMap, subMap: _Janiczek$middleware$Middleware_Navigation$subMap};
+var _Janiczek$middleware$ExampleProgram$view = function (model) {
+	return A2(
+		_elm_lang$html$Html$div,
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$class('program'),
+			_1: {ctor: '[]'}
+		},
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html$text(
+				A2(
+					_elm_lang$core$Basics_ops['++'],
+					'program here! model: ',
+					_elm_lang$core$Basics$toString(model))),
+			_1: {ctor: '[]'}
+		});
+};
+var _Janiczek$middleware$ExampleProgram$Model = F2(
+	function (a, b) {
+		return {counter: a, locations: b};
+	});
+var _Janiczek$middleware$ExampleProgram$init = {
+	ctor: '_Tuple2',
+	_0: A2(_Janiczek$middleware$ExampleProgram$Model, 0, 0),
+	_1: _elm_lang$core$Platform_Cmd$none
+};
+var _Janiczek$middleware$ExampleProgram$update = F2(
+	function (msg, _p0) {
+		var _p1 = _p0;
+		var _p4 = _p1.locations;
+		var _p3 = _p1.counter;
+		var _p2 = msg;
+		switch (_p2.ctor) {
+			case 'Increment':
+				return {
+					ctor: '_Tuple2',
+					_0: A2(_Janiczek$middleware$ExampleProgram$Model, _p3 + 1, _p4),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			case 'Double':
+				return {
+					ctor: '_Tuple2',
+					_0: A2(_Janiczek$middleware$ExampleProgram$Model, _p3 * 2, _p4),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			default:
+				return {
+					ctor: '_Tuple2',
+					_0: A2(_Janiczek$middleware$ExampleProgram$Model, _p3, _p4 + 1),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+		}
+	});
+var _Janiczek$middleware$ExampleProgram$ProgramMsgs = function (a) {
+	return {location: a};
+};
+var _Janiczek$middleware$ExampleProgram$LocationChanged = function (a) {
+	return {ctor: 'LocationChanged', _0: a};
+};
+var _Janiczek$middleware$ExampleProgram$Double = {ctor: 'Double'};
+var _Janiczek$middleware$ExampleProgram$Increment = {ctor: 'Increment'};
+var _Janiczek$middleware$ExampleProgram$subscriptions = function (model) {
+	return _elm_lang$core$Platform_Sub$batch(
+		{
+			ctor: '::',
+			_0: A2(
+				_elm_lang$core$Time$every,
+				_elm_lang$core$Time$second,
+				_elm_lang$core$Basics$always(_Janiczek$middleware$ExampleProgram$Increment)),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_elm_lang$core$Time$every,
+					2 * _elm_lang$core$Time$second,
+					_elm_lang$core$Basics$always(_Janiczek$middleware$ExampleProgram$Double)),
+				_1: {ctor: '[]'}
+			}
+		});
+};
+var _Janiczek$middleware$ExampleProgram$program = {
+	init: _Janiczek$middleware$ExampleProgram$init,
+	update: _Janiczek$middleware$ExampleProgram$update,
+	subscriptions: _Janiczek$middleware$ExampleProgram$subscriptions,
+	view: _Janiczek$middleware$ExampleProgram$view,
+	programMsgs: {location: _Janiczek$middleware$ExampleProgram$LocationChanged}
+};
 var _Janiczek$middleware$Middleware_History$viewHistory = function (history) {
 	return A2(
 		_elm_lang$html$Html$ul,
@@ -8988,191 +9469,7 @@ var _Janiczek$middleware$Middleware_History$init = function (_p1) {
 	};
 };
 var _Janiczek$middleware$Middleware_History$middleware = {init: _Janiczek$middleware$Middleware_History$init, update: _Janiczek$middleware$Middleware_History$update, subscriptions: _Janiczek$middleware$Program$subscriptionsNoop, wrapMsg: _Janiczek$middleware$Middleware_History$Other, unwrapMsg: _Janiczek$middleware$Middleware_History$unwrapMsg, view: _Janiczek$middleware$Middleware_History$view};
-var _elm_lang$html$Html_Events$keyCode = A2(_elm_lang$core$Json_Decode$field, 'keyCode', _elm_lang$core$Json_Decode$int);
-var _elm_lang$html$Html_Events$targetChecked = A2(
-	_elm_lang$core$Json_Decode$at,
-	{
-		ctor: '::',
-		_0: 'target',
-		_1: {
-			ctor: '::',
-			_0: 'checked',
-			_1: {ctor: '[]'}
-		}
-	},
-	_elm_lang$core$Json_Decode$bool);
-var _elm_lang$html$Html_Events$targetValue = A2(
-	_elm_lang$core$Json_Decode$at,
-	{
-		ctor: '::',
-		_0: 'target',
-		_1: {
-			ctor: '::',
-			_0: 'value',
-			_1: {ctor: '[]'}
-		}
-	},
-	_elm_lang$core$Json_Decode$string);
-var _elm_lang$html$Html_Events$defaultOptions = _elm_lang$virtual_dom$VirtualDom$defaultOptions;
-var _elm_lang$html$Html_Events$onWithOptions = _elm_lang$virtual_dom$VirtualDom$onWithOptions;
-var _elm_lang$html$Html_Events$on = _elm_lang$virtual_dom$VirtualDom$on;
-var _elm_lang$html$Html_Events$onFocus = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'focus',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onBlur = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'blur',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onSubmitOptions = _elm_lang$core$Native_Utils.update(
-	_elm_lang$html$Html_Events$defaultOptions,
-	{preventDefault: true});
-var _elm_lang$html$Html_Events$onSubmit = function (msg) {
-	return A3(
-		_elm_lang$html$Html_Events$onWithOptions,
-		'submit',
-		_elm_lang$html$Html_Events$onSubmitOptions,
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onCheck = function (tagger) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'change',
-		A2(_elm_lang$core$Json_Decode$map, tagger, _elm_lang$html$Html_Events$targetChecked));
-};
-var _elm_lang$html$Html_Events$onInput = function (tagger) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'input',
-		A2(_elm_lang$core$Json_Decode$map, tagger, _elm_lang$html$Html_Events$targetValue));
-};
-var _elm_lang$html$Html_Events$onMouseOut = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'mouseout',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onMouseOver = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'mouseover',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onMouseLeave = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'mouseleave',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onMouseEnter = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'mouseenter',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onMouseUp = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'mouseup',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onMouseDown = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'mousedown',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onDoubleClick = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'dblclick',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$onClick = function (msg) {
-	return A2(
-		_elm_lang$html$Html_Events$on,
-		'click',
-		_elm_lang$core$Json_Decode$succeed(msg));
-};
-var _elm_lang$html$Html_Events$Options = F2(
-	function (a, b) {
-		return {stopPropagation: a, preventDefault: b};
-	});
-var _Janiczek$middleware$Middleware_ResetByMsg$unwrapMsg = function (msg) {
-	var _p0 = msg;
-	if (_p0.ctor === 'Other') {
-		return _elm_lang$core$Maybe$Just(_p0._0);
-	} else {
-		return _elm_lang$core$Maybe$Nothing;
-	}
-};
-var _Janiczek$middleware$Middleware_ResetByMsg$update = F3(
-	function (msg, model, _p1) {
-		var _p2 = _p1;
-		var _p3 = msg;
-		if (_p3.ctor === 'Reset') {
-			return {
-				ctor: '_Tuple3',
-				_0: model,
-				_1: _elm_lang$core$Platform_Cmd$none,
-				_2: _elm_lang$core$Maybe$Just(_p2.reset)
-			};
-		} else {
-			return {ctor: '_Tuple3', _0: model, _1: _elm_lang$core$Platform_Cmd$none, _2: _elm_lang$core$Maybe$Nothing};
-		}
-	});
-var _Janiczek$middleware$Middleware_ResetByMsg$Model = {};
-var _Janiczek$middleware$Middleware_ResetByMsg$Reset = {ctor: 'Reset'};
-var _Janiczek$middleware$Middleware_ResetByMsg$view = F2(
-	function (model, innerView) {
-		return A2(
-			_elm_lang$html$Html$div,
-			{
-				ctor: '::',
-				_0: _elm_lang$html$Html_Attributes$class('reset'),
-				_1: {ctor: '[]'}
-			},
-			{
-				ctor: '::',
-				_0: _elm_lang$html$Html$text('resetting middleware here!'),
-				_1: {
-					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$button,
-						{
-							ctor: '::',
-							_0: _elm_lang$html$Html_Events$onClick(_Janiczek$middleware$Middleware_ResetByMsg$Reset),
-							_1: {ctor: '[]'}
-						},
-						{
-							ctor: '::',
-							_0: _elm_lang$html$Html$text('RESET THE MODEL!'),
-							_1: {ctor: '[]'}
-						}),
-					_1: {
-						ctor: '::',
-						_0: innerView,
-						_1: {ctor: '[]'}
-					}
-				}
-			});
-	});
-var _Janiczek$middleware$Middleware_ResetByMsg$Other = function (a) {
-	return {ctor: 'Other', _0: a};
-};
-var _Janiczek$middleware$Middleware_ResetByMsg$middleware = {
-	init: _Janiczek$middleware$Program$initNoop(_Janiczek$middleware$Middleware_ResetByMsg$Other),
-	update: _Janiczek$middleware$Middleware_ResetByMsg$update,
-	subscriptions: _Janiczek$middleware$Program$subscriptionsNoop,
-	wrapMsg: _Janiczek$middleware$Middleware_ResetByMsg$Other,
-	unwrapMsg: _Janiczek$middleware$Middleware_ResetByMsg$unwrapMsg,
-	view: _Janiczek$middleware$Middleware_ResetByMsg$view
-};
-var _Janiczek$middleware$Main$main = A3(_Janiczek$middleware$Program$compose3, _Janiczek$middleware$Middleware_History$middleware, _Janiczek$middleware$Middleware_ResetByMsg$middleware, _Janiczek$middleware$ExampleProgram$program)();
+var _Janiczek$middleware$Main$main = A3(_Janiczek$middleware$Program$compose3, _Janiczek$middleware$Middleware_History$middleware, _Janiczek$middleware$Middleware_Navigation$middleware, _Janiczek$middleware$ExampleProgram$program)();
 var Elm = {};
 Elm['Main'] = Elm['Main'] || {};
 if (typeof _Janiczek$middleware$Main$main !== 'undefined') {
